@@ -3,9 +3,12 @@ module terraform-provider-cop
 go 1.22.1
 
 require (
+	github.com/apex/log v1.9.0
 	github.com/hashicorp/terraform-plugin-docs v0.18.0
 	github.com/hashicorp/terraform-plugin-framework v1.7.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+	golang.org/x/oauth2 v0.16.0
 )
 
 require (
@@ -46,6 +49,7 @@ require (
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/oklog/run v1.0.0 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
@@ -61,9 +65,9 @@ require (
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
