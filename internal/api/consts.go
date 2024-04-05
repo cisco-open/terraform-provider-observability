@@ -17,5 +17,6 @@ const (
 )
 
 const (
-	typeAPIPath = "/knowledge-store/v1/types/"
+	typeAPIPath   = "/knowledge-store/v1/types/"
+	objectAPIPath = "/knowledge-store/v1/objects/"
 )

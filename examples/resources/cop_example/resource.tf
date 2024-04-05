@@ -12,11 +12,9 @@ provider "cop" {
   url         = "https://alameda-c0-test-02.saas.appd-test.com"
 }
 
-
-data "cop_type" "ns" {
-  type_name = "anzen:cloudConnection"
-}
-
-output "myType" {
-  value = data.cop_type.ns
+resource "cop_object" "ns" {
+  type_name = "fmm:namespace"
+  object_id = "aws"
+  layer_type = "TENANT"
+  layer_id = "47a01df9-54a0-472b-96b8-7c8f64eb7cbf"
 }

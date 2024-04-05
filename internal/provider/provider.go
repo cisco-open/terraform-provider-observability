@@ -236,7 +236,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 func (p *COPProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewObjectResource,
 	}
 }
 
