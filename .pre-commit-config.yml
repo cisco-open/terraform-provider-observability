@@ -14,23 +14,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-version: 2
-updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    groups:
-      github:
-        patterns:
-          - "actions/*"
-          - "github/*"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      go-dependencies:
-        patterns:
-          - "*"
-    open-pull-requests-limit: 5
+repos:
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.16.3
+  hooks:
+  - id: gitleaks
+- repo: https://github.com/jumanjihouse/pre-commit-hooks
+  rev: 3.0.0
+  hooks:
+  - id: shellcheck
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
