@@ -14,23 +14,28 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-version: 2
-updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    groups:
-      github:
-        patterns:
-          - "actions/*"
-          - "github/*"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      go-dependencies:
-        patterns:
-          - "*"
-    open-pull-requests-limit: 5
+name: license-check
+
+on:
+  push:
+    branches:
+      # Run on pushes to default branch
+      - main
+  # Run against pull requests
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔒 harden runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      - name: ⬇️ license checker
+        run: |
+          make check-license
