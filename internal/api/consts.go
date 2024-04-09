@@ -2,8 +2,9 @@ package api
 
 // authentication types
 const (
-	authMethodOAuth = "oauth"
-	headless        = "headless"
+	authMethodOAuth  = "oauth"
+	headless         = "headless"
+	servicePrincipal = "service-principal"
 	// TODO add new types of authentication method here...
 )
 

@@ -15,17 +15,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type AppdClient struct {
-	Username     string
-	Password     string
-	Tenant       string
-	AuthMethod   string
-	URL          string
-	Token        string
-	RefreshToken string
-	APIClient    *http.Client
-}
-
 // appTokens is what the AppD backend returns when it hands back the tokens (in exchange for the authorization code)
 type appTokens struct {
 	AccessToken  string `json:"access_token"` // aka JWT token to make requests
@@ -49,24 +38,6 @@ type oauthErrorPayload struct {
 	ErrorDesc  string `json:"error_description"`
 	ErrorHing  string `json:"error_hint"`
 	StatusCode int    `json:"status_code"`
-}
-
-func (ac *AppdClient) Login() error {
-	var authErr error
-	switch ac.AuthMethod {
-	case authMethodOAuth:
-		authErr = ac.oauthLogin()
-	case headless:
-		// TODO: implement the headless authentication using username and password
-	default:
-		panic(fmt.Sprintf("bug: unhandled authentication method %q", ac.AuthMethod))
-	}
-	if authErr != nil {
-		return authErr
-	}
-
-	// PROBLEM: we should return the login credentials to terraform for storing purposes ?
-	return nil
 }
 
 func (ac *AppdClient) oauthLogin() error {

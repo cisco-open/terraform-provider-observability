@@ -31,11 +31,12 @@ type COPProvider struct {
 
 // COPProviderModel describes the provider data model.
 type COPProviderModel struct {
-	Username   types.String `tfsdk:"username"`
-	Password   types.String `tfsdk:"password"`
-	URL        types.String `tfsdk:"url"`
-	AuthMethod types.String `tfsdk:"auth_method"`
-	Tenant     types.String `tfsdk:"tenant"`
+	Username    types.String `tfsdk:"username"`
+	Password    types.String `tfsdk:"password"`
+	URL         types.String `tfsdk:"url"`
+	AuthMethod  types.String `tfsdk:"auth_method"`
+	Tenant      types.String `tfsdk:"tenant"`
+	SecretsFile types.String `tfsdk:"secrets_file"`
 }
 
 func (p *COPProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -47,7 +48,7 @@ func (p *COPProvider) Schema(ctx context.Context, req provider.SchemaRequest, re
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"auth_method": schema.StringAttribute{
-				MarkdownDescription: "Authentication type selected for COP API requests. Possible values(oauth, headless)",
+				MarkdownDescription: "Authentication type selected for COP API requests. Possible values(oauth, headless, service-principal)",
 				Required:            true,
 			},
 			"tenant": schema.StringAttribute{
@@ -65,6 +66,10 @@ func (p *COPProvider) Schema(ctx context.Context, req provider.SchemaRequest, re
 			},
 			"url": schema.StringAttribute{
 				MarkdownDescription: "URL used when authentication eg. https://mytenant.com",
+				Optional:            true,
+			},
+			"secrets_file": schema.StringAttribute{
+				MarkdownDescription: "Path to secrets file to authenticate using service-principal ",
 				Optional:            true,
 			},
 		},
@@ -122,6 +127,14 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		)
 	}
 
+	if data.URL.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("secrets_file"),
+			"Unknown cop API secrets_file",
+			"Please make sure you configure the secrets_file field",
+		)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -134,12 +147,13 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	authMethod := os.Getenv("COP_AUTH_METHOD")
 	tenantID := os.Getenv("COP_TENANT")
 	url := os.Getenv("URL")
+	secretsFile := os.Getenv("SECRETS_FILE")
 
 	tflog.Debug(ctx, fmt.Sprintf("Terraform username is %s", data.Username))
 	tflog.Debug(ctx, fmt.Sprintf("Terraform password is %s", data.Password))
 	tflog.Debug(ctx, fmt.Sprintf("Terraform url is %s", data.URL))
 	tflog.Debug(ctx, fmt.Sprintf("Terraform tenant is %s", data.Tenant))
-
+	tflog.Debug(ctx, fmt.Sprintf("Terraform secrets file path is %s", data.SecretsFile))
 	tflog.Debug(ctx, fmt.Sprintf("Terraform auth_method is %s", data.AuthMethod))
 	tflog.Debug(ctx, fmt.Sprintf("Terraform auth_method FROM ENV is %s", authMethod))
 
@@ -161,6 +175,10 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 	if !data.AuthMethod.IsNull() {
 		authMethod = data.AuthMethod.ValueString()
+	}
+
+	if !data.SecretsFile.IsNull() {
+		secretsFile = data.SecretsFile.ValueString()
 	}
 
 	if authMethod == "" {
@@ -205,6 +223,14 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 				"SET the COP_PASSWORD env var or the config",
 			)
 		}
+	case "service-principal":
+		if secretsFile == "" {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("secrets_file"),
+				"Missing cop API secrets_file",
+				"SET the SECRETS_FILE env var or the config",
+			)
+		}
 	}
 
 	// exit if any of the required attributes is missing
@@ -219,6 +245,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		Password:   password,
 		URL:        url,
 		Tenant:     tenantID,
+		SecretFile: secretsFile,
 		APIClient:  http.DefaultClient,
 	}
 
