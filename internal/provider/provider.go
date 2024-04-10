@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"terraform-provider-cop/internal/api"
+
+	"github.com/cisco-open/terraform-provider-observability/internal/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -39,12 +40,12 @@ type COPProviderModel struct {
 	SecretsFile types.String `tfsdk:"secrets_file"`
 }
 
-func (p *COPProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *COPProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "cop"
 	resp.Version = p.version
 }
 
-func (p *COPProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *COPProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"auth_method": schema.StringAttribute{
@@ -76,6 +77,7 @@ func (p *COPProvider) Schema(ctx context.Context, req provider.SchemaRequest, re
 	}
 }
 
+//nolint:funlen,gocyclo // To be addressed in the future
 func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var data COPProviderModel
 
@@ -254,26 +256,26 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		tflog.Error(ctx, fmt.Sprintf("Failed to authenticate to COP client: %s", err.Error()))
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Successfull authentication to COP client using %s", appdClient.AuthMethod))
+	tflog.Debug(ctx, fmt.Sprintf("Successful authentication to COP client using %s", appdClient.AuthMethod))
 
 	// TODO change this to a real client
 	resp.DataSourceData = appdClient
 	resp.ResourceData = appdClient
 }
 
-func (p *COPProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *COPProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewObjectResource,
 	}
 }
 
-func (p *COPProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *COPProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewTypeDataSource,
 	}
 }
 
-func (p *COPProvider) Functions(ctx context.Context) []func() function.Function {
+func (p *COPProvider) Functions(_ context.Context) []func() function.Function {
 	return []func() function.Function{
 		NewExampleFunction,
 	}

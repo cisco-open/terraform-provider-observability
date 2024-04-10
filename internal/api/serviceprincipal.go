@@ -36,9 +36,9 @@ type credentialsStruct struct {
 func (ac *AppdClient) servicePrincipalLogin() error {
 	// read credentials file
 	file := ac.SecretFile
-	credentials, err := readJsonCredentials(file)
+	credentials, err := readJSONCredentials(file)
 	if err != nil {
-		return fmt.Errorf("failed to read credentials file %q: %v", file, err)
+		return fmt.Errorf("failed to read credentials file %q: %w", file, err)
 	}
 
 	return servicePrincipalLogin(ac, credentials)
@@ -46,15 +46,16 @@ func (ac *AppdClient) servicePrincipalLogin() error {
 
 func servicePrincipalLogin(ac *AppdClient, credentials *credentialsStruct) error {
 	// create a HTTP request
-	url, err := url.Parse(ac.URL)
+	uri, err := url.Parse(ac.URL)
 	if err != nil {
 		log.Fatalf("Failed to parse the url provided in context. URL: %s, err: %s", ac.URL, err)
 	}
-	url.Path = "auth/" + ac.Tenant + "/default/oauth2/token"
+	uri.Path = "auth/" + ac.Tenant + "/default/oauth2/token"
 
-	req, err := http.NewRequest("POST", url.String(), strings.NewReader("grant_type=client_credentials"))
+	//nolint:noctx // To be removed in the future
+	req, err := http.NewRequest("POST", uri.String(), strings.NewReader("grant_type=client_credentials"))
 	if err != nil {
-		return fmt.Errorf("failed to create a request for %q: %v", url.String(), err)
+		return fmt.Errorf("failed to create a request for %q: %w", uri.String(), err)
 	}
 
 	req.Header.Add("Accept", "application/json")
@@ -65,9 +66,9 @@ func servicePrincipalLogin(ac *AppdClient, credentials *credentialsStruct) error
 	client := ac.APIClient
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to request auth (%q): %w", url.String(), err)
+		return fmt.Errorf("failed to request auth (%q): %w", uri.String(), err)
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		log.Errorf("Login failed, status %q; details to follow", resp.Status)
 	}
 
@@ -75,7 +76,7 @@ func servicePrincipalLogin(ac *AppdClient, credentials *credentialsStruct) error
 	defer resp.Body.Close()
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed reading login response from %q: %w", url.String(), err)
+		return fmt.Errorf("failed reading login response from %q: %w", uri.String(), err)
 	}
 
 	// update context with token
@@ -91,7 +92,7 @@ func servicePrincipalLogin(ac *AppdClient, credentials *credentialsStruct) error
 	return nil
 }
 
-func readJsonCredentials(file string) (*credentialsStruct, error) {
+func readJSONCredentials(file string) (*credentialsStruct, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open the credentials file %q: %w", file, err)

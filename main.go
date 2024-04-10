@@ -20,7 +20,8 @@ import (
 	"context"
 	"flag"
 	"log"
-	"terraform-provider-cop/internal/provider"
+
+	"github.com/cisco-open/terraform-provider-observability/internal/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )

@@ -44,6 +44,10 @@ add-license: $(ADDLICENSE)
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run ./...
 
+.PHONY: lint-fix
+lint-fix: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run --fix ./...
+
 .PHONY: test
 test:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
