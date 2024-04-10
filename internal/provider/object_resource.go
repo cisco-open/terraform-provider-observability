@@ -6,7 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"terraform-provider-cop/internal/api"
+
+	"github.com/cisco-open/terraform-provider-observability/internal/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -35,14 +36,14 @@ type ObjectResourceModel struct {
 	TenantID   types.String  `tfsdk:"layer_id"`
 	TenantType types.String  `tfsdk:"layer_type"`
 	Data       types.Dynamic `tfsdk:"data"`
-	Id         types.String  `tfsdk:"id"`
+	ID         types.String  `tfsdk:"id"`
 }
 
-func (r *ObjectResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *ObjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_object"
 }
 
-func (r *ObjectResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Object resource",
@@ -77,7 +78,7 @@ func (r *ObjectResource) Schema(ctx context.Context, req resource.SchemaRequest,
 	}
 }
 
-func (r *ObjectResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ObjectResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -95,6 +96,7 @@ func (r *ObjectResource) Configure(ctx context.Context, req resource.ConfigureRe
 	r.client = client
 }
 
+//nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data ObjectResourceModel
 
@@ -115,7 +117,7 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// For the purposes of this example code, hardcoding a response value to
 	// save into the Terraform state.
-	data.Id = types.StringValue("example-id")
+	data.ID = types.StringValue("example-id")
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
@@ -125,6 +127,7 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+//nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data ObjectResourceModel
 
@@ -137,14 +140,14 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// issue the API call
 	typeName := data.Typename.ValueString()
-	objId := data.ObjectID.ValueString()
+	objID := data.ObjectID.ValueString()
 	layerID := data.TenantID.ValueString()
 	layerType := data.TenantType.ValueString()
 
-	result, err := r.client.GetObject(typeName, objId, layerID, layerType)
+	result, err := r.client.GetObject(typeName, objID, layerID, layerType)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Unable to Read object of type %s with id %s", typeName, objId),
+			fmt.Sprintf("Unable to Read object of type %s with id %s", typeName, objID),
 			err.Error(),
 		)
 		return
@@ -156,12 +159,13 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	tflog.Trace(ctx, "read a resource")
 
 	// set the placeholder value for testing purposses
-	data.Id = types.StringValue("placeholder")
+	data.ID = types.StringValue("placeholder")
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+//nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data ObjectResourceModel
 
@@ -184,6 +188,7 @@ func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+//nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data ObjectResourceModel
 

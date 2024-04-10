@@ -18,7 +18,7 @@ func (ac *AppdClient) GetObject(fullyQualifiedTypeName, objectID, layerID, layer
 		url = ac.URL + objectAPIPath + fullyQualifiedTypeName + "/" + objectID
 	}
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody) //nolint:noctx // To be removed in the future
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a request for %q: %w", url, err)
 	}

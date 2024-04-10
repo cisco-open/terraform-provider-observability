@@ -1,4 +1,4 @@
-module terraform-provider-cop
+module github.com/cisco-open/terraform-provider-observability
 
 go 1.22.1
 

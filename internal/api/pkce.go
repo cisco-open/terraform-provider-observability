@@ -11,7 +11,8 @@ import (
 
 // GenerateCodeVerifier generates a random code verifier string
 func GenerateCodeVerifier() (string, error) {
-	verifier := make([]byte, 32) // Generate a 256-bit (32-byte) random string
+	const codeLenBytes = 32
+	verifier := make([]byte, codeLenBytes) // Generate a 256-bit (32-byte) random string
 	_, err := rand.Read(verifier)
 	if err != nil {
 		return "", err
@@ -44,7 +45,7 @@ func Verifier(verifier string) oauth2.AuthCodeOption {
 	return oauth2.SetAuthURLParam("code_verifier", verifier)
 }
 
-// Challange sets the appropriate code challenge
+// Challenge sets the appropriate code challenge
 func Challenge(challenge string) oauth2.AuthCodeOption {
 	return oauth2.SetAuthURLParam("code_challenge", challenge)
 }

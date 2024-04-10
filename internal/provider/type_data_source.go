@@ -6,7 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"terraform-provider-cop/internal/api"
+
+	"github.com/cisco-open/terraform-provider-observability/internal/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -30,14 +31,14 @@ type TypeDataSource struct {
 type TypeDataSourceModel struct {
 	Typename types.String  `tfsdk:"type_name"`
 	Data     types.Dynamic `tfsdk:"data"`
-	Id       types.String  `tfsdk:"id"`
+	ID       types.String  `tfsdk:"id"`
 }
 
-func (d *TypeDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *TypeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_type"
 }
 
-func (d *TypeDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *TypeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Type data source",
@@ -59,7 +60,7 @@ func (d *TypeDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 	}
 }
 
-func (d *TypeDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *TypeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -77,6 +78,7 @@ func (d *TypeDataSource) Configure(ctx context.Context, req datasource.Configure
 	d.client = client
 }
 
+//nolint:gocritic // Terraform framework requires the method signature to be as is
 func (d *TypeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data TypeDataSourceModel
 
@@ -99,8 +101,8 @@ func (d *TypeDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	// convert result to Terraform Schema and populate
-	//response := make(map[string]any)
-	//json.Unmarshal(result, &response)
+	// response := make(map[string]any)
+	// json.Unmarshal(result, &response)
 
 	tflog.Debug(ctx, fmt.Sprintf("\n\nResponse is %+v\n\n", string(result)))
 
@@ -108,7 +110,7 @@ func (d *TypeDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	tflog.Trace(ctx, "read a data source")
 
 	// set the placeholder value for testing purposses
-	data.Id = types.StringValue("placeholder")
+	data.ID = types.StringValue("placeholder")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

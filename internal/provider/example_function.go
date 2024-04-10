@@ -19,7 +19,7 @@ func NewExampleFunction() function.Function {
 
 type ExampleFunction struct{}
 
-func (r ExampleFunction) Metadata(_ context.Context, req function.MetadataRequest, resp *function.MetadataResponse) {
+func (r ExampleFunction) Metadata(_ context.Context, _ function.MetadataRequest, resp *function.MetadataResponse) {
 	resp.Name = "example"
 }
 

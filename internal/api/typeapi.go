@@ -10,7 +10,8 @@ import (
 func (ac *AppdClient) GetType(fullyQualifiedTypeName string) ([]byte, error) {
 	url := ac.URL + typeAPIPath + fullyQualifiedTypeName
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	//nolint:noctx // To be removed in the future
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a request for %q: %w", url, err)
 	}

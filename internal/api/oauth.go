@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/apex/log"
 	"github.com/pkg/browser"
@@ -19,7 +20,7 @@ import (
 type appTokens struct {
 	AccessToken  string `json:"access_token"` // aka JWT token to make requests
 	ExpiresIn    int    `json:"expires_in"`
-	IdToken      string `json:"id_token"`
+	IDToken      string `json:"id_token"`
 	RefreshToken string `json:"refresh_token"` // this is what we use to get a fresh JWT token
 	Scope        string `json:"scope"`
 	TokenType    string `json:"token_type"` // e.g., bearer
@@ -41,7 +42,6 @@ type oauthErrorPayload struct {
 }
 
 func (ac *AppdClient) oauthLogin() error {
-
 	log.Infof("Starting OAuth authentication flow")
 
 	// try refresh token if present
@@ -69,29 +69,30 @@ func (ac *AppdClient) oauthLogin() error {
 
 	// prepare OAuth2 config
 	conf := &oauth2.Config{
-		ClientID:    oauth2ClientId,
-		RedirectURL: oauthRedirectUri,
+		ClientID:    oauth2ClientID,
+		RedirectURL: oauthRedirectURI,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:   oauthUriWithSuffix(ac, oauth2AuthUriSuffix),
-			TokenURL:  oauthUriWithSuffix(ac, oauth2TokenUriSuffix),
+			AuthURL:   oauthURIWithSuffix(ac, oauth2AuthURISuffix),
+			TokenURL:  oauthURIWithSuffix(ac, oauth2TokenURISuffix),
 			AuthStyle: oauth2.AuthStyleInParams,
 		},
 		Scopes: []string{"openid", "introspect_tokens", "offline_access"},
 	}
-	url := conf.AuthCodeURL(state,
+	authCodeURL := conf.AuthCodeURL(state,
 		Method(SHA256Hash),
 		Challenge(GenerateCodeChallenge(code)),
 	)
 
 	// open browser to perform login, collect auth with a localhost http server
-	authCode, err := getAuthorizationCodes(url)
+	authCode, err := getAuthorizationCodes(authCodeURL)
 	if err != nil {
-		return fmt.Errorf("login failed to obtain the authorization code: %v", err)
+		return fmt.Errorf("login failed to obtain the authorization code: %w", err)
 	}
 
 	// verify nonce, must match
 	if state != authCode.State {
-		return fmt.Errorf("login failed: received auth state doesn't match (a session replay or similar attack is likely in progress; please log out of all sessions!)")
+		return fmt.Errorf("login failed: received auth state doesn't match (a session replay" +
+			" or similar attack is likely in progress; please log out of all sessions!)")
 	}
 
 	// exchange auth code for token
@@ -117,11 +118,11 @@ func exchangeCodeForToken(conf *oauth2.Config, client *http.Client, codeVerifier
 	values.Add("client_id", "default")
 	values.Add("code_verifier", codeVerifier)
 	values.Add("code", authCode.Code)
-	values.Add("redirect_uri", oauthRedirectUri)
+	values.Add("redirect_uri", oauthRedirectURI)
 	bodyReader := bytes.NewReader([]byte(values.Encode()))
 
 	// create a POST HTTP request
-	req, err := http.NewRequest("POST", conf.Endpoint.TokenURL, bodyReader)
+	req, err := http.NewRequest("POST", conf.Endpoint.TokenURL, bodyReader) //nolint:noctx // To be removed in the future
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a request %q: %v", conf.Endpoint.TokenURL, err.Error())
 	}
@@ -172,17 +173,17 @@ func oauthRefreshToken(cfg *AppdClient) error {
 
 	// prepare urlencoded data body
 	values := url.Values{}
-	values.Add("client_id", oauth2ClientId)
-	values.Add("redirect_uri", oauthRedirectUri)
+	values.Add("client_id", oauth2ClientID)
+	values.Add("redirect_uri", oauthRedirectURI)
 	values.Add("grant_type", "refresh_token")
 	values.Add("refresh_token", cfg.RefreshToken)
 	bodyReader := bytes.NewReader([]byte(values.Encode()))
 
 	// create a POST HTTP request
-	tokenUri := oauthUriWithSuffix(cfg, oauth2TokenUriSuffix)
-	req, err := http.NewRequest("POST", tokenUri, bodyReader)
+	tokenURI := oauthURIWithSuffix(cfg, oauth2TokenURISuffix)
+	req, err := http.NewRequest("POST", tokenURI, bodyReader) //nolint:noctx // To be removed in the future
 	if err != nil {
-		return fmt.Errorf("failed to create a token refresh request %q: %v", tokenUri, err)
+		return fmt.Errorf("failed to create a token refresh request %q: %w", tokenURI, err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 
@@ -216,15 +217,15 @@ func oauthRefreshToken(cfg *AppdClient) error {
 	return nil
 }
 
-func oauthUriWithSuffix(cfg *AppdClient, suffix string) string {
-	uri, err := url.JoinPath(cfg.URL, "auth", cfg.Tenant, oauth2ClientId, suffix)
+func oauthURIWithSuffix(cfg *AppdClient, suffix string) string {
+	uri, err := url.JoinPath(cfg.URL, "auth", cfg.Tenant, oauth2ClientID, suffix)
 	if err != nil {
 		log.Fatalf("unexpected failure constructing oauth2 endpoint URI: %v; terminating (likely a bug)", err)
 	}
 	return uri
 }
 
-func getAuthorizationCodes(url string) (*authCodes, error) {
+func getAuthorizationCodes(uri string) (*authCodes, error) {
 	// start http server to receive the auth callback
 	callbackServer, respChan, err := startCallbackServer()
 	if err != nil {
@@ -234,9 +235,9 @@ func getAuthorizationCodes(url string) (*authCodes, error) {
 		_ = stopCallbackServer(callbackServer) // no check needed, error should be logged
 	}()
 
-	if err = openBrowser(url); err != nil {
+	if err = openBrowser(uri); err != nil {
 		log.Errorf("Failed to automatically launch browser auth window: %v", err)
-		log.Errorf("Please visit the following URL to login\n%v\n", url)
+		log.Errorf("Please visit the following URL to login\n%v\n", uri)
 	}
 
 	authCode := <-respChan // nb: blocks until a callback is received on localhost with the correct path
@@ -249,15 +250,16 @@ func startCallbackServer() (*http.Server, chan authCodes, error) {
 	respChan := make(chan authCodes)
 
 	// start server at oauthRedirectUri
-	urlStruct, err := url.Parse(oauthRedirectUri)
+	urlStruct, err := url.Parse(oauthRedirectURI)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse callback URL %q: %v", oauthRedirectUri, err)
+		return nil, nil, fmt.Errorf("failed to parse callback URL %q: %w", oauthRedirectURI, err)
 	}
 	server := &http.Server{
 		Addr: urlStruct.Host,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			callbackHandler(respChan, w, r)
 		}),
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
 		err := server.ListenAndServe()
@@ -270,7 +272,7 @@ func startCallbackServer() (*http.Server, chan authCodes, error) {
 
 func stopCallbackServer(server *http.Server) error {
 	if err := server.Close(); err != nil {
-		err = fmt.Errorf("error stopping the auth http server on %v: %v", server.Addr, err)
+		err = fmt.Errorf("error stopping the auth http server on %v: %w", server.Addr, err)
 		log.Errorf("%v", err)
 		return err
 	}
@@ -281,15 +283,14 @@ func stopCallbackServer(server *http.Server) error {
 
 func callbackHandler(respChan chan authCodes, w http.ResponseWriter, r *http.Request) {
 	// compute expected response path
-	respUri, err := url.Parse(oauthRedirectUri)
+	respURI, err := url.Parse(oauthRedirectURI)
 	if err != nil {
 		log.Errorf("Unexpected failure to obtain expected callback path (likely a bug): %v", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	callbackPath := respUri.Path
+	callbackPath := respURI.Path
 
-	//log.Infof("Request %+v", r)
 	uri, err := url.Parse(r.RequestURI)
 	if err != nil {
 		log.Errorf("Unexpected failure to parse callback path received (malformed request?): %v", err.Error())
@@ -344,7 +345,7 @@ func safeExtractFirstValue(queryValues url.Values, field string) string {
 // openBrowser opens a browser window at the provided url. It also captures stdout message displayed
 // by the command (if any: xdg-open in Linux says things like "Opening in existing browser session.") so
 // that our stdout is not polluted (as it may be being captured for yaml/json parsing)
-func openBrowser(url string) error {
+func openBrowser(uri string) error {
 	// redirect browser's package stdout to a pipe, saving the original stdout
 	orig := browser.Stdout
 	r, w, _ := os.Pipe()
@@ -354,7 +355,7 @@ func openBrowser(url string) error {
 	}()
 
 	// start browser
-	browserErr := browser.OpenURL(url) // check error later
+	browserErr := browser.OpenURL(uri) // check error later
 	w.Close()                          // no more writing
 
 	// copy the output in a separate goroutine so printing can't block indefinitely
