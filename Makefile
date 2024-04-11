@@ -38,7 +38,7 @@ check-license: $(ADDLICENSE)
 .PHONY: add-license
 add-license: $(ADDLICENSE)
 	@echo "adding license headers, please commit any modified files"
-	$(ADDLICENSE) -s -v -c "Cisco Systems, Inc. and its affiliates" -l apache .
+	$(ADDLICENSE) -s -v -l mpl .
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
