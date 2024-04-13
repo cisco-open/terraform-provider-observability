@@ -34,10 +34,7 @@ func (ac *AppdClient) GetObject(fullyQualifiedTypeName, objectID, layerID, layer
 
 	req.Header.Add("Content-Type", contentType)
 	req.Header.Add("Accept", contentType)
-
-	if ac.AuthMethod == authMethodOAuth {
-		req.Header.Add("Authorization", "Bearer "+ac.Token)
-	}
+	req.Header.Add("Authorization", "Bearer "+ac.Token)
 
 	req.Header.Add("layer-id", layerID)
 	req.Header.Add("layer-type", layerType)

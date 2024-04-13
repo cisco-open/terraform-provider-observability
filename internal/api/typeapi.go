@@ -27,10 +27,7 @@ func (ac *AppdClient) GetType(fullyQualifiedTypeName string) ([]byte, error) {
 
 	req.Header.Add("Content-Type", contentType)
 	req.Header.Add("Accept", contentType)
-
-	if ac.AuthMethod == authMethodOAuth {
-		req.Header.Add("Authorization", "Bearer "+ac.Token)
-	}
+	req.Header.Add("Authorization", "Bearer "+ac.Token)
 
 	// Do request
 	resp, err := ac.APIClient.Do(req)
