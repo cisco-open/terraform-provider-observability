@@ -13,14 +13,29 @@ terraform {
 }
 
 provider "observability" {
-  tenant      = "47a01df9-54a0-472b-96b8-7c8f64eb7cbf"
-  auth_method = "oauth"
-  url         = "https://alameda-c0-test-02.saas.appd-test.com"
+  tenant="0eb4e853-34fb-4f77-b3fc-b9cd3b462366"
+  auth_method="service-principal"
+  url="https://aiops-dev.saas.appd-test.com"
+  secrets_file="/home/vdodin/aiops_secret.json"
 }
 
-resource "observability_object" "ns" {
-  type_name = "fmm:namespace"
-  object_id = "aws"
+
+resource "observability_object" "conn" {
+  type_name = "anzen:cloudConnection"
+  object_id = "just-terraform-testing"
   layer_type = "TENANT"
-  layer_id = "47a01df9-54a0-472b-96b8-7c8f64eb7cbf"
+  layer_id = "0eb4e853-34fb-4f77-b3fc-b9cd3b462366"
+  data = jsonencode(
+    {
+      "cloudType": "AWS",
+      "connectionName": "just-terraform-testing",
+      "region": "us-east-2",
+      "accessKey": "**********",
+      "secretAccessKey": "**********",
+      "s3AccessLogBucket": "s3://s3-sanity-logging/",
+      "athenaOutputBucket": "s3://s3-sanity-athena-logs/",
+      "createTimestamp": "",
+      "accountId": "81892134343434"
+    }
+  )
 }
