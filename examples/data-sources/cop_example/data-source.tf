@@ -6,23 +6,24 @@
 
 terraform {
   required_providers {
-    cop = {
-      source = "testTerraform.com/appd/cop"
+    observability = {
+      source = "testTerraform.com/appd/observability"
     }
   }
 }
 
-provider "cop" {
-  tenant      = "47a01df9-54a0-472b-96b8-7c8f64eb7cbf"
-  auth_method = "oauth"
-  url         = "https://alameda-c0-test-02.saas.appd-test.com"
+provider "observability" {
+  tenant="0eb4e853-34fb-4f77-b3fc-b9cd3b462366"
+  auth_method="service-principal"
+  url="https://aiops-dev.saas.appd-test.com"
+  secrets_file="/home/vdodin/aiops_secret.json"
 }
 
 
-data "cop_type" "ns" {
+data "observability_type" "ns" {
   type_name = "fmm:namespace"
 }
 
 output "myType" {
-  value = data.cop_type.ns
+  value = data.observability_type.ns
 }

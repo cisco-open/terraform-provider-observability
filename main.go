@@ -45,7 +45,7 @@ func main() {
 		// TODO: Update this string with the published name of your provider.
 		// Also update the tfplugindocs generate command to either remove the
 		// -provider-name flag or set its value to the updated provider name.
-		Address: "testTerraform.com/appd/cop",
+		Address: "testTerraform.com/appd/observability",
 		Debug:   debug,
 	}
 
