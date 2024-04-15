@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/cisco-open/terraform-provider-observability/internal/api"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -31,12 +33,12 @@ type ObjectResource struct {
 
 // ObjectResourceModel describes the resource data model.
 type ObjectResourceModel struct {
-	Typename   types.String  `tfsdk:"type_name"`
-	ObjectID   types.String  `tfsdk:"object_id"`
-	TenantID   types.String  `tfsdk:"layer_id"`
-	TenantType types.String  `tfsdk:"layer_type"`
-	Data       types.Dynamic `tfsdk:"data"`
-	ID         types.String  `tfsdk:"id"`
+	TypeName  types.String `tfsdk:"type_name"`
+	ObjectID  types.String `tfsdk:"object_id"`
+	LayerID   types.String `tfsdk:"layer_id"`
+	LayerType types.String `tfsdk:"layer_type"`
+	Data      types.String `tfsdk:"data"`
+	ID        types.String `tfsdk:"id"`
 }
 
 func (r *ObjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -55,7 +57,7 @@ func (r *ObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"object_id": schema.StringAttribute{
 				MarkdownDescription: "Spepcified the object ID for the particular object to get",
-				Required:            true,
+				Optional:            true,
 			},
 			"layer_id": schema.StringAttribute{
 				MarkdownDescription: "Specifies the layer ID where the object resides",
@@ -65,10 +67,12 @@ func (r *ObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Specifies the layer type where the object resides",
 				Required:            true,
 			},
-			"data": schema.DynamicAttribute{
-				MarkdownDescription: "JSON schema of the returned type",
+			"data": schema.StringAttribute{
+				MarkdownDescription: "JSON schema of the returned object",
 				Optional:            true,
-				Computed:            true,
+				Validators: []validator.String{
+					IsValidJsonString{},
+				},
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Used to provide compatibility for testing framework",
@@ -98,6 +102,7 @@ func (r *ObjectResource) Configure(_ context.Context, req resource.ConfigureRequ
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Debug(ctx, "Create method invoked")
 	var data ObjectResourceModel
 
 	// Read Terraform plan data into the model
@@ -107,21 +112,27 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create example, got error: %s", err))
-	//     return
-	// }
+	// issue the API call
+	typeName := data.TypeName.ValueString()
+	layerType := data.LayerType.ValueString()
+	layerID := data.LayerID.ValueString()
+	jsonPayload := []byte(data.Data.ValueString())
 
-	// For the purposes of this example code, hardcoding a response value to
-	// save into the Terraform state.
-	data.ID = types.StringValue("example-id")
+	err := r.client.CreateObject(typeName, layerID, layerType, jsonPayload)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to Read type %s", typeName),
+			err.Error(),
+		)
+		return
+	}
+
+	// set the placeholder value for testing purposses
+	data.ID = types.StringValue("placeholder")
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
+	tflog.Debug(ctx, "created a resource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -129,6 +140,7 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Debug(ctx, "Read method invoked")
 	var data ObjectResourceModel
 
 	// Read Terraform prior state data into the model
@@ -139,10 +151,11 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// issue the API call
-	typeName := data.Typename.ValueString()
+	typeName := data.TypeName.ValueString()
 	objID := data.ObjectID.ValueString()
-	layerID := data.TenantID.ValueString()
-	layerType := data.TenantType.ValueString()
+	layerID := data.LayerID.ValueString()
+	layerType := data.LayerType.ValueString()
+	currentDataPayload := data.Data.ValueString()
 
 	result, err := r.client.GetObject(typeName, objID, layerID, layerType)
 	if err != nil {
@@ -153,10 +166,53 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("\n\nResponse is %+v\n\n", string(result)))
+	tflog.Debug(ctx, fmt.Sprintf("Response is %+v", string(result)))
 
-	data.Data = types.DynamicValue(types.StringValue(string(result)))
-	tflog.Trace(ctx, "read a resource")
+	// update the model with the new values
+	var parsedCurrentDataPayload map[string]interface{}
+	var parsedResponse map[string]interface{}
+
+	err = json.Unmarshal(result, &parsedResponse)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to Unmarshal object of type %s with id %s", typeName, objID),
+			err.Error(),
+		)
+		return
+	}
+
+	err = json.Unmarshal([]byte(currentDataPayload), &parsedCurrentDataPayload)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to Unmarshal object of type %s with id %s", typeName, objID),
+			err.Error(),
+		)
+		return
+	}
+
+	// update only the fields which we provided
+	// this is to avoid false updates due to the observability API generating new fields as response
+	dataPayload := parsedResponse["data"].(map[string]interface{})
+	for k, v := range dataPayload {
+		if _, ok := parsedCurrentDataPayload[k]; ok {
+			parsedCurrentDataPayload[k] = v
+		}
+	}
+
+	// marshall the updated map into a json string to store in data attribute
+	updatedDataPayload, err := json.Marshal(&parsedCurrentDataPayload)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to Marshall object of type %s with id %s", typeName, objID),
+			err.Error(),
+		)
+		return
+	}
+
+	// update the state data attribute
+	data.Data = types.StringValue(string(updatedDataPayload))
+
+	tflog.Debug(ctx, "read a resource")
 
 	// set the placeholder value for testing purposses
 	data.ID = types.StringValue("placeholder")
@@ -167,6 +223,7 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Debug(ctx, "Update method invoked")
 	var data ObjectResourceModel
 
 	// Read Terraform plan data into the model
@@ -176,13 +233,24 @@ func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
+	// issue the API call
+	typeName := data.TypeName.ValueString()
+	objID := data.ObjectID.ValueString()
+	layerType := data.LayerType.ValueString()
+	layerID := data.LayerID.ValueString()
+	jsonPayload := []byte(data.Data.ValueString())
+
+	err := r.client.UpdateObject(typeName, objID, layerID, layerType, jsonPayload)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to Read type %s", typeName),
+			err.Error(),
+		)
+		return
+	}
+
+	// set the placeholder value for testing purposses
+	data.ID = types.StringValue("placeholder")
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -190,12 +258,28 @@ func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Debug(ctx, "Delete method invoked")
 	var data ObjectResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// issue the API call
+	typeName := data.TypeName.ValueString()
+	objID := data.ObjectID.ValueString()
+	layerID := data.LayerID.ValueString()
+	layerType := data.LayerType.ValueString()
+
+	err := r.client.DeleteObject(typeName, objID, layerID, layerType)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to Delete object of type %s with id %s", typeName, objID),
+			err.Error(),
+		)
 		return
 	}
 }

@@ -8,7 +8,6 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,15 +16,10 @@ import (
 // CreateObject is a method used to POST the knowledge store object
 // based on the fullyQualifiedTypeName with the payload set in the body
 // layerID which will be the tenant and layerType (TENANT/SOLUTION/...)
-func (ac *AppdClient) CreateObject(fullyQualifiedTypeName, layerID, layerType string, body map[string]interface{}) error {
+func (ac *AppdClient) CreateObject(fullyQualifiedTypeName, layerID, layerType string, body []byte) error {
 	url := ac.URL + objectAPIPath + fullyQualifiedTypeName
 
-	bodyPayload := make(map[string]interface{})
-	result, err := json.Marshal(bodyPayload)
-	if err != nil {
-		return err
-	}
-	bodyReader := bytes.NewReader(result)
+	bodyReader := bytes.NewReader(body)
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader) //nolint:noctx // To be removed in the future
 	if err != nil {
 		return fmt.Errorf("failed to create a request for %q: %w", url, err)
@@ -58,15 +52,9 @@ func (ac *AppdClient) CreateObject(fullyQualifiedTypeName, layerID, layerType st
 // UpdateObject is a method used to PUT the knowledge store object
 // based on the fullyQualifiedTypeName with the payload set in the body
 // layerID which will be the tenant and layerType (TENANT/SOLUTION/...)
-func (ac *AppdClient) UpdateObject(fullyQualifiedTypeName, layerID, layerType string, body map[string]interface{}) error {
-	url := ac.URL + objectAPIPath + fullyQualifiedTypeName
-
-	bodyPayload := make(map[string]interface{})
-	result, err := json.Marshal(bodyPayload)
-	if err != nil {
-		return err
-	}
-	bodyReader := bytes.NewReader(result)
+func (ac *AppdClient) UpdateObject(fullyQualifiedTypeName, objectID, layerID, layerType string, body []byte) error {
+	url := ac.URL + objectAPIPath + fullyQualifiedTypeName + "/" + objectID
+	bodyReader := bytes.NewReader(body)
 	req, err := http.NewRequest(http.MethodPut, url, bodyReader) //nolint:noctx // To be removed in the future
 	if err != nil {
 		return fmt.Errorf("failed to create a request for %q: %w", url, err)
@@ -90,7 +78,7 @@ func (ac *AppdClient) UpdateObject(fullyQualifiedTypeName, layerID, layerType st
 	defer resp.Body.Close()
 
 	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("failed to POST request to %q (status %v): %s", req.URL.String(), resp.StatusCode, resp.Status)
+		return fmt.Errorf("failed to PUT request to %q (status %v): %s", req.URL.String(), resp.StatusCode, resp.Status)
 	}
 
 	return nil
