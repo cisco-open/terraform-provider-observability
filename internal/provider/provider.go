@@ -41,7 +41,7 @@ type COPProviderModel struct {
 }
 
 func (p *COPProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "cop"
+	resp.TypeName = "observability"
 	resp.Version = p.version
 }
 
@@ -49,7 +49,7 @@ func (p *COPProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"auth_method": schema.StringAttribute{
-				MarkdownDescription: "Authentication type selected for COP API requests. Possible values(oauth, headless, service-principal)",
+				MarkdownDescription: "Authentication type selected for observability API requests. Possible values(oauth, headless, service-principal)",
 				Required:            true,
 			},
 			"tenant": schema.StringAttribute{
@@ -92,7 +92,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if data.AuthMethod.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("auth_method"),
-			"Unknown cop API auth_method",
+			"Unknown observability API auth_method",
 			"Please make sure you configure the auth_method field",
 		)
 	}
@@ -100,7 +100,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if data.Tenant.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("tenant"),
-			"Unknown cop API tenant",
+			"Unknown observability API tenant",
 			"Please make sure you configure the tenant field",
 		)
 	}
@@ -108,7 +108,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if data.Username.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("username"),
-			"Unknown cop API username",
+			"Unknown observability API username",
 			"Please make sure you configure the username field",
 		)
 	}
@@ -116,7 +116,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if data.Password.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("password"),
-			"Unknown cop API password",
+			"Unknown observability API password",
 			"Please make sure you configure the password field",
 		)
 	}
@@ -124,7 +124,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if data.URL.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url"),
-			"Unknown cop API url",
+			"Unknown observability API url",
 			"Please make sure you configure the url field",
 		)
 	}
@@ -132,7 +132,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if data.URL.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("secrets_file"),
-			"Unknown cop API secrets_file",
+			"Unknown observability API secrets_file",
 			"Please make sure you configure the secrets_file field",
 		)
 	}
@@ -186,7 +186,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if authMethod == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("auth_method"),
-			"Missing cop API auth_method",
+			"Missing observability API auth_method",
 			"SET the COP_AUTH_METHOD env var or the config",
 		)
 		tflog.Error(ctx, "Missing or empty value for auth_method attribute")
@@ -197,7 +197,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		if url == "" {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("url"),
-				"Missing cop API url",
+				"Missing observability API url",
 				"SET the COP_URL env var or the config",
 			)
 		}
@@ -205,7 +205,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		if tenantID == "" {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("tenant"),
-				"Missing cop API tenant",
+				"Missing observability API tenant",
 				"SET the COP_TENANT env var or the config",
 			)
 		}
@@ -213,7 +213,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		if username == "" {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("username"),
-				"Missing cop API username",
+				"Missing observability API username",
 				"SET the COP_USERNAME env var or the config",
 			)
 		}
@@ -221,7 +221,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		if password == "" {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("password"),
-				"Missing cop API password",
+				"Missing observability API password",
 				"SET the COP_PASSWORD env var or the config",
 			)
 		}
@@ -229,7 +229,7 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		if secretsFile == "" {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("secrets_file"),
-				"Missing cop API secrets_file",
+				"Missing observability API secrets_file",
 				"SET the SECRETS_FILE env var or the config",
 			)
 		}
@@ -253,10 +253,10 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 	err := appdClient.Login()
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Failed to authenticate to COP client: %s", err.Error()))
+		tflog.Error(ctx, fmt.Sprintf("Failed to authenticate to observability client: %s", err.Error()))
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Successful authentication to COP client using %s", appdClient.AuthMethod))
+	tflog.Debug(ctx, fmt.Sprintf("Successful authentication to observability client using %s", appdClient.AuthMethod))
 
 	// TODO change this to a real client
 	resp.DataSourceData = appdClient
