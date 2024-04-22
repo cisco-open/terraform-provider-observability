@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cisco-open/terraform-provider-observability/internal/api"
 
@@ -38,6 +39,7 @@ type ObjectResourceModel struct {
 	LayerID   types.String `tfsdk:"layer_id"`
 	LayerType types.String `tfsdk:"layer_type"`
 	Data      types.String `tfsdk:"data"`
+	ImportID  types.String `tfsdk:"import_id"`
 	ID        types.String `tfsdk:"id"`
 }
 
@@ -73,6 +75,10 @@ func (r *ObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Validators: []validator.String{
 					IsValidJSONString{},
 				},
+			},
+			"import_id": schema.StringAttribute{
+				MarkdownDescription: "ID used when doing import operation on an object",
+				Optional:            true,
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Used to provide compatibility for testing framework",
@@ -142,6 +148,7 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(ctx, "Read method invoked")
 	var data ObjectResourceModel
+	var importIDTokenLength = 4
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -156,6 +163,20 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	layerID := data.LayerID.ValueString()
 	layerType := data.LayerType.ValueString()
 	currentDataPayload := data.Data.ValueString()
+	importIdentifier := data.ImportID.ValueString()
+
+	// in case of import previous properties will be empty, only importIdentifier will get populated
+	// because of this, importIdentifier will be a composition of typeName|objID|layerID|layerType
+	// reason for this is that the api needs all four fields to properly identify an object
+	identityFields := strings.Split(importIdentifier, "|")
+	if len(identityFields) == importIDTokenLength {
+		tflog.Debug(ctx, "Import scenario detected")
+		tflog.Debug(ctx, "Extracting required fields from import_id")
+		typeName = identityFields[0]
+		objID = identityFields[1]
+		layerType = identityFields[2]
+		layerID = identityFields[3]
+	}
 
 	result, err := r.client.GetObject(typeName, objID, layerID, layerType)
 	if err != nil {
@@ -166,8 +187,6 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Response is %+v", string(result)))
-
 	// update the model with the new values
 	var parsedCurrentDataPayload map[string]any
 	var parsedResponse map[string]any
@@ -175,27 +194,35 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	err = json.Unmarshal(result, &parsedResponse)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Unable to Unmarshal object of type %s with id %s", typeName, objID),
+			fmt.Sprintf("Unable to Unmarshal response object of type %s with id %s", typeName, objID),
 			err.Error(),
 		)
 		return
 	}
 
-	err = json.Unmarshal([]byte(currentDataPayload), &parsedCurrentDataPayload)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Unable to Unmarshal object of type %s with id %s", typeName, objID),
-			err.Error(),
-		)
-		return
+	if currentDataPayload != "" {
+		err = json.Unmarshal([]byte(currentDataPayload), &parsedCurrentDataPayload)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Unable to Unmarshal current object of type %s with id %s", typeName, objID),
+				err.Error(),
+			)
+			return
+		}
 	}
 
-	// update only the fields which we provided
-	// this is to avoid false updates due to the observability API generating new fields as response
 	dataPayload := parsedResponse["data"].(map[string]any)
-	for k, v := range dataPayload {
-		if _, ok := parsedCurrentDataPayload[k]; ok {
-			parsedCurrentDataPayload[k] = v
+	if parsedCurrentDataPayload == nil {
+		// data was not provided in this case, maybe import usecase
+		// populate all the fields with what the observability api provided
+		parsedCurrentDataPayload = dataPayload
+	} else {
+		// update only the fields which we provided
+		// this is to avoid false updates due to the observability API generating new fields as response
+		for k, v := range dataPayload {
+			if _, ok := parsedCurrentDataPayload[k]; ok {
+				parsedCurrentDataPayload[k] = v
+			}
 		}
 	}
 
@@ -216,6 +243,11 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// set the placeholder value for testing purposses
 	data.ID = types.StringValue("placeholder")
+	// set the rest of the fields
+	data.TypeName = types.StringValue(typeName)
+	data.ObjectID = types.StringValue(objID)
+	data.LayerType = types.StringValue(layerType)
+	data.LayerID = types.StringValue(layerID)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -285,5 +317,5 @@ func (r *ObjectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 }
 
 func (r *ObjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("import_id"), req, resp)
 }
