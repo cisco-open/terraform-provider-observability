@@ -61,7 +61,7 @@ func (ac *AppdClient) oauthLogin() error {
 		return err
 	}
 
-	// generate code verifiert
+	// generate code verifier
 	code, err := GenerateCodeVerifier()
 	if err != nil {
 		return err

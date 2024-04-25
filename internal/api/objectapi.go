@@ -7,10 +7,80 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
 )
+
+// CreateObject is a method used to POST the knowledge store object
+// based on the fullyQualifiedTypeName with the payload set in the body
+// layerID which will be the tenant and layerType (TENANT/SOLUTION/...)
+func (ac *AppdClient) CreateObject(fullyQualifiedTypeName, layerID, layerType string, body []byte) error {
+	url := ac.URL + objectAPIPath + fullyQualifiedTypeName
+
+	bodyReader := bytes.NewReader(body)
+	req, err := http.NewRequest(http.MethodPost, url, bodyReader) //nolint:noctx // To be removed in the future
+	if err != nil {
+		return fmt.Errorf("failed to create a request for %q: %w", url, err)
+	}
+
+	// Add headers
+	req.Header.Add("Content-Type", jsonContentType)
+	req.Header.Add("Accept", jsonContentType)
+	req.Header.Add("Authorization", "Bearer "+ac.Token)
+
+	req.Header.Add("layer-id", layerID)
+	req.Header.Add("layer-type", layerType)
+
+	// Do request
+	resp, err := ac.APIClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("%v request to %q failed: %w", http.MethodPost, req.URL.String(), err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("failed to POST request to %q (status %v): %s", req.URL.String(), resp.StatusCode, resp.Status)
+	}
+
+	return nil
+}
+
+// UpdateObject is a method used to PUT the knowledge store object
+// based on the fullyQualifiedTypeName with the payload set in the body
+// layerID which will be the tenant and layerType (TENANT/SOLUTION/...)
+func (ac *AppdClient) UpdateObject(fullyQualifiedTypeName, objectID, layerID, layerType string, body []byte) error {
+	url := ac.URL + objectAPIPath + fullyQualifiedTypeName + "/" + objectID
+	bodyReader := bytes.NewReader(body)
+	req, err := http.NewRequest(http.MethodPut, url, bodyReader)
+	if err != nil {
+		return fmt.Errorf("failed to create a request for %q: %w", url, err)
+	}
+
+	// Add headers
+	req.Header.Add("Content-Type", jsonContentType)
+	req.Header.Add("Accept", jsonContentType)
+	req.Header.Add("Authorization", "Bearer "+ac.Token)
+
+	req.Header.Add("layer-id", layerID)
+	req.Header.Add("layer-type", layerType)
+
+	// Do request
+	resp, err := ac.APIClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("%v request to %q failed: %w", http.MethodPut, req.URL.String(), err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("failed to PUT request to %q (status %v): %s", req.URL.String(), resp.StatusCode, resp.Status)
+	}
+
+	return nil
+}
 
 // GetObject is a method used to GET the knowledge store object
 // based on the fullyQualifiedTypeName and objectID
@@ -30,10 +100,8 @@ func (ac *AppdClient) GetObject(fullyQualifiedTypeName, objectID, layerID, layer
 	}
 
 	// Add headers
-	contentType := "application/json"
-
-	req.Header.Add("Content-Type", contentType)
-	req.Header.Add("Accept", contentType)
+	req.Header.Add("Content-Type", jsonContentType)
+	req.Header.Add("Accept", jsonContentType)
 	req.Header.Add("Authorization", "Bearer "+ac.Token)
 
 	req.Header.Add("layer-id", layerID)
@@ -55,4 +123,33 @@ func (ac *AppdClient) GetObject(fullyQualifiedTypeName, objectID, layerID, layer
 	}
 
 	return respBytes, nil
+}
+
+// DeleteObject is a method used to DELETE the knowledge store object
+// based on the fullyQualifiedTypeName and objectID
+// layerID which will be the tenant and layerType (TENANT/SOLUTION/...)
+func (ac *AppdClient) DeleteObject(fullyQualifiedTypeName, objectID, layerID, layerType string) error {
+	url := ac.URL + objectAPIPath + fullyQualifiedTypeName + "/" + objectID
+
+	req, err := http.NewRequest(http.MethodDelete, url, http.NoBody) //nolint:noctx // To be removed in the future
+	if err != nil {
+		return fmt.Errorf("failed to delete a request for %q: %w", url, err)
+	}
+
+	// Add headers
+	req.Header.Add("Content-Type", jsonContentType)
+	req.Header.Add("Accept", jsonContentType)
+	req.Header.Add("Authorization", "Bearer "+ac.Token)
+
+	req.Header.Add("layer-id", layerID)
+	req.Header.Add("layer-type", layerType)
+
+	// Do request
+	resp, err := ac.APIClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("%v request to %q failed: %w", http.MethodDelete, req.URL.String(), err)
+	}
+
+	resp.Body.Close()
+	return nil
 }

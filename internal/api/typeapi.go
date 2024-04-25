@@ -23,10 +23,8 @@ func (ac *AppdClient) GetType(fullyQualifiedTypeName string) ([]byte, error) {
 	}
 
 	// Add headers
-	contentType := "application/json"
-
-	req.Header.Add("Content-Type", contentType)
-	req.Header.Add("Accept", contentType)
+	req.Header.Add("Content-Type", jsonContentType)
+	req.Header.Add("Accept", jsonContentType)
 	req.Header.Add("Authorization", "Bearer "+ac.Token)
 
 	// Do request

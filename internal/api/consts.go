@@ -28,3 +28,7 @@ const (
 	typeAPIPath   = "/knowledge-store/v1/types/"
 	objectAPIPath = "/knowledge-store/v1/objects/"
 )
+
+const (
+	jsonContentType = "application/json"
+)
