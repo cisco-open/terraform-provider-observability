@@ -7,15 +7,15 @@
 terraform {
   required_providers {
     observability = {
-      source = "testTerraform.com/appd/observability"
+      source = "registry.terraform.io/cisco-open/observability"
     }
   }
 }
 
 provider "observability" {
-  tenant="47a01df9-54a0-472b-96b8-7c8f64eb7cbf"
-  auth_method="service-principal"
-  url="https://alameda-c0-test-02.saas.appd-test.com"
-  secrets_file="/home/vdodin/secrets.json"
+  tenant       = "47a01df9-54a0-472b-96b8-7c8f64eb7cbf"
+  auth_method  = "service-principal"
+  url          = "https://alameda-c0-test-02.saas.appd-test.com"
+  secrets_file = "/home/yourUser/secrets.json"
 }
 

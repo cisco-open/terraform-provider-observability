@@ -38,6 +38,7 @@ func (d *TypeDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 	resp.TypeName = req.ProviderTypeName + "_type"
 }
 
+// Schema defines the schema for the data source.
 func (d *TypeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.

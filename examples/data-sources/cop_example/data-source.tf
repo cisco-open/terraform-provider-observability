@@ -4,26 +4,7 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-terraform {
-  required_providers {
-    observability = {
-      source = "testTerraform.com/appd/observability"
-    }
-  }
-}
-
-provider "observability" {
-  tenant="0eb4e853-34fb-4f77-b3fc-b9cd3b462366"
-  auth_method="service-principal"
-  url="https://aiops-dev.saas.appd-test.com"
-  secrets_file="/home/vdodin/aiops_secret.json"
-}
-
 
 data "observability_type" "ns" {
   type_name = "fmm:namespace"
-}
-
-output "myType" {
-  value = data.observability_type.ns
 }

@@ -45,6 +45,7 @@ func (p *COPProvider) Metadata(_ context.Context, _ provider.MetadataRequest, re
 	resp.Version = p.version
 }
 
+// Schema defines the provider-level schema for configuration data.
 func (p *COPProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
@@ -66,7 +67,7 @@ func (p *COPProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 				Sensitive:           true,
 			},
 			"url": schema.StringAttribute{
-				MarkdownDescription: "URL used when authentication eg. https://mytenant.com",
+				MarkdownDescription: "URL used when authentication eg. <https://mytenant.com>",
 				Optional:            true,
 			},
 			"secrets_file": schema.StringAttribute{
@@ -276,9 +277,7 @@ func (p *COPProvider) DataSources(_ context.Context) []func() datasource.DataSou
 }
 
 func (p *COPProvider) Functions(_ context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {
