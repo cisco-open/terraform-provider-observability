@@ -50,7 +50,7 @@ lint-fix: $(GOLANGCI_LINT)
 
 .PHONY: test
 test:
-	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+	TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=cisco-open  go test ./... -v $(TESTARGS) -timeout 120m
 
 .PHONY: plugin
 plugin:

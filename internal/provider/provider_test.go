@@ -16,7 +16,7 @@ const (
 terraform {
 	required_providers {
 		observability = {
-		source = "testTerraform.com/appd/observability"
+		source = "registry.terraform.io/cisco-open/observability",
 		}
 	}
 }

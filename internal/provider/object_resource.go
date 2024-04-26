@@ -145,7 +145,7 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-//nolint:gocritic // Terraform framework requires the method signature to be as is
+//nolint:gocritic,funlen // Terraform framework requires the method signature to be as is
 func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(ctx, "Read method invoked")
 	var data ObjectResourceModel
@@ -179,6 +179,13 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		layerID = identityFields[3]
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("type name is %s", typeName))
+	tflog.Debug(ctx, fmt.Sprintf("object id is %s", objID))
+	tflog.Debug(ctx, fmt.Sprintf("layer ID is %s", layerID))
+	tflog.Debug(ctx, fmt.Sprintf("layer type %s", layerType))
+	tflog.Debug(ctx, fmt.Sprintf("data payload %s", currentDataPayload))
+	tflog.Debug(ctx, fmt.Sprintf("import identifier is %s", importIdentifier))
+
 	result, err := r.client.GetObject(typeName, objID, layerID, layerType)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -188,6 +195,7 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("api response is %s", string(result)))
 	// update the model with the new values
 	var parsedCurrentDataPayload map[string]any
 	var parsedResponse map[string]any
@@ -201,6 +209,7 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("parsed response into map is %v", parsedResponse))
 	if currentDataPayload != "" {
 		err = json.Unmarshal([]byte(currentDataPayload), &parsedCurrentDataPayload)
 		if err != nil {
@@ -212,7 +221,17 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		}
 	}
 
-	dataPayload := parsedResponse["data"].(map[string]any)
+	// if we can't fetch any data from the cloud return
+	var dataPayload map[string]any
+	var ok bool
+	if dataPayload, ok = parsedResponse["data"].(map[string]any); !ok {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to assert data map from current object of type %s with id %s", typeName, objID),
+			err.Error(),
+		)
+		return
+	}
+
 	if parsedCurrentDataPayload == nil {
 		// data was not provided in this case, maybe import usecase
 		// populate all the fields with what the observability api provided
