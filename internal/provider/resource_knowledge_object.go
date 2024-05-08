@@ -20,20 +20,20 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ObjectResource{}
-var _ resource.ResourceWithImportState = &ObjectResource{}
+var _ resource.Resource = &KnowledgeObjectResource{}
+var _ resource.ResourceWithImportState = &KnowledgeObjectResource{}
 
-func NewObjectResource() resource.Resource {
-	return &ObjectResource{}
+func NewKnowledgeObjectResource() resource.Resource {
+	return &KnowledgeObjectResource{}
 }
 
-// ObjectResource defines the resource implementation.
-type ObjectResource struct {
+// KnowledgeObjectResource defines the resource implementation.
+type KnowledgeObjectResource struct {
 	client *api.AppdClient
 }
 
-// ObjectResourceModel describes the resource data model.
-type ObjectResourceModel struct {
+// KnowledgeObjectResourceModel describes the resource data model.
+type KnowledgeObjectResourceModel struct {
 	TypeName  types.String `tfsdk:"type_name"`
 	ObjectID  types.String `tfsdk:"object_id"`
 	LayerID   types.String `tfsdk:"layer_id"`
@@ -43,12 +43,12 @@ type ObjectResourceModel struct {
 	ID        types.String `tfsdk:"id"`
 }
 
-func (r *ObjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *KnowledgeObjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_object"
 }
 
 // Schema defines the schema for the resource.
-func (r *ObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *KnowledgeObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Object resource",
@@ -89,7 +89,7 @@ func (r *ObjectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 	}
 }
 
-func (r *ObjectResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *KnowledgeObjectResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -108,9 +108,9 @@ func (r *ObjectResource) Configure(_ context.Context, req resource.ConfigureRequ
 }
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
-func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *KnowledgeObjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Debug(ctx, "Create method invoked")
-	var data ObjectResourceModel
+	var data KnowledgeObjectResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -145,10 +145,10 @@ func (r *ObjectResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-//nolint:gocritic // Terraform framework requires the method signature to be as is
-func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+//nolint:gocritic,funlen // Terraform framework requires the method signature to be as is
+func (r *KnowledgeObjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(ctx, "Read method invoked")
-	var data ObjectResourceModel
+	var data KnowledgeObjectResourceModel
 	var importIDTokenLength = 4
 
 	// Read Terraform prior state data into the model
@@ -179,6 +179,13 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		layerID = identityFields[3]
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("type name is %s", typeName))
+	tflog.Debug(ctx, fmt.Sprintf("object id is %s", objID))
+	tflog.Debug(ctx, fmt.Sprintf("layer ID is %s", layerID))
+	tflog.Debug(ctx, fmt.Sprintf("layer type %s", layerType))
+	tflog.Debug(ctx, fmt.Sprintf("data payload %s", currentDataPayload))
+	tflog.Debug(ctx, fmt.Sprintf("import identifier is %s", importIdentifier))
+
 	result, err := r.client.GetObject(typeName, objID, layerID, layerType)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -188,6 +195,7 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("api response is %s", string(result)))
 	// update the model with the new values
 	var parsedCurrentDataPayload map[string]any
 	var parsedResponse map[string]any
@@ -201,6 +209,7 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	tflog.Debug(ctx, fmt.Sprintf("parsed response into map is %v", parsedResponse))
 	if currentDataPayload != "" {
 		err = json.Unmarshal([]byte(currentDataPayload), &parsedCurrentDataPayload)
 		if err != nil {
@@ -212,7 +221,17 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		}
 	}
 
-	dataPayload := parsedResponse["data"].(map[string]any)
+	// if we can't fetch any data from the cloud return
+	var dataPayload map[string]any
+	var ok bool
+	if dataPayload, ok = parsedResponse["data"].(map[string]any); !ok {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to assert data map from current object of type %s with id %s", typeName, objID),
+			err.Error(),
+		)
+		return
+	}
+
 	if parsedCurrentDataPayload == nil {
 		// data was not provided in this case, maybe import usecase
 		// populate all the fields with what the observability api provided
@@ -255,9 +274,9 @@ func (r *ObjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 }
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
-func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *KnowledgeObjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	tflog.Debug(ctx, "Update method invoked")
-	var data ObjectResourceModel
+	var data KnowledgeObjectResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -290,9 +309,9 @@ func (r *ObjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 }
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
-func (r *ObjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *KnowledgeObjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Debug(ctx, "Delete method invoked")
-	var data ObjectResourceModel
+	var data KnowledgeObjectResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -317,6 +336,6 @@ func (r *ObjectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 }
 
-func (r *ObjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *KnowledgeObjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("import_id"), req, resp)
 }

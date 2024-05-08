@@ -16,30 +16,30 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ datasource.DataSource = &TypeDataSource{}
+var _ datasource.DataSource = &KnowledgeTypeDataSource{}
 
-func NewTypeDataSource() datasource.DataSource {
-	return &TypeDataSource{}
+func NewKnowledgeTypeDataSource() datasource.DataSource {
+	return &KnowledgeTypeDataSource{}
 }
 
-// TypeDataSource defines the data source implementation.
-type TypeDataSource struct {
+// KnowledgeTypeDataSource defines the data source implementation.
+type KnowledgeTypeDataSource struct {
 	client *api.AppdClient
 }
 
-// TypeDataSourceModel describes the data source data model.
-type TypeDataSourceModel struct {
+// KnowledgeTypeDataSourceModel describes the data source data model.
+type KnowledgeTypeDataSourceModel struct {
 	Typename types.String  `tfsdk:"type_name"`
 	Data     types.Dynamic `tfsdk:"data"`
 	ID       types.String  `tfsdk:"id"`
 }
 
-func (d *TypeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *KnowledgeTypeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_type"
 }
 
 // Schema defines the schema for the data source.
-func (d *TypeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *KnowledgeTypeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "Type data source",
@@ -61,7 +61,7 @@ func (d *TypeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 	}
 }
 
-func (d *TypeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *KnowledgeTypeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -80,8 +80,8 @@ func (d *TypeDataSource) Configure(_ context.Context, req datasource.ConfigureRe
 }
 
 //nolint:gocritic // Terraform framework requires the method signature to be as is
-func (d *TypeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data TypeDataSourceModel
+func (d *KnowledgeTypeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data KnowledgeTypeDataSourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)

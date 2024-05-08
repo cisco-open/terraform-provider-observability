@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+//go:build acceptance
+
 package provider
 
 import (
@@ -13,7 +15,7 @@ import (
 )
 
 //lint:ignore U1000 Ignore unused function temporarily for debugging
-func _TestAccTypeDataSource(t *testing.T) {
+func TestAccKnowledgeTypeDataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
