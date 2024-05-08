@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+//go:build unit
+
 package api_test
 
 import (

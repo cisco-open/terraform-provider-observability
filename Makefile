@@ -50,7 +50,11 @@ lint-fix: $(GOLANGCI_LINT)
 
 .PHONY: test
 test:
-	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+	go test ./... -v -tags=unit $(TESTARGS) -timeout 120m
+
+.PHONY: acctest
+acctest:
+	TF_ACC=1 go test ./... -v -tags=acceptance $(TESTARGS) -timeout 120m
 
 .PHONY: plugin
 plugin:

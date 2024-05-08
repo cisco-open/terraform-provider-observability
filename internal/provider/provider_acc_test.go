@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+//go:build acceptance
+
 package provider
 
 import (
@@ -16,7 +18,7 @@ const (
 terraform {
 	required_providers {
 		observability = {
-		source = "testTerraform.com/appd/observability"
+		source = "registry.terraform.io/cisco-open/observability",
 		}
 	}
 }

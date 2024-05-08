@@ -266,13 +266,13 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 func (p *COPProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewObjectResource,
+		NewKnowledgeObjectResource,
 	}
 }
 
 func (p *COPProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewTypeDataSource,
+		NewKnowledgeTypeDataSource,
 	}
 }
 

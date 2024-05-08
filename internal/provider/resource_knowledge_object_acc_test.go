@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+//go:build acceptance
+
 package provider
 
 import (
@@ -12,8 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-//lint:ignore U1000 Ignore unused function temporarily for debugging
-func _TestAccObjectResource(t *testing.T) {
+func TestAccKnowledgeObjectResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -59,13 +60,12 @@ resource "observability_object" "test" {
 				),
 			},
 			// ImportState testing
-			// TO DO add this after the plugin is plublished
-			// {
-			// 	ResourceName:      "observability_object.test",
-			// 	ImportState:       true,
-			// 	ImportStateVerify: true,
-			// },
-			// Update and Read testing
+			{
+				ResourceName:      "observability_object.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "anzen:cloudConnection|just-terraform-testing|TENANT|0eb4e853-34fb-4f77-b3fc-b9cd3b462366",
+			},
 			{
 				Config: providerConfig + `
 resource "observability_object" "test" {
