@@ -265,9 +265,11 @@ func (p *COPProvider) Configure(ctx context.Context, req provider.ConfigureReque
 }
 
 func (p *COPProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
-		NewKnowledgeObjectResource,
-	}
+	var resourceHandlers []func() resource.Resource
+	resourceHandlers = append(resourceHandlers, registerStaticResourceHandlers()...)
+	resourceHandlers = append(resourceHandlers, registerGeneratedResourceHandlers()...)
+
+	return resourceHandlers
 }
 
 func (p *COPProvider) DataSources(_ context.Context) []func() datasource.DataSource {
