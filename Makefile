@@ -7,6 +7,7 @@ FSOC := $(TOOLS_DIR)/fsoc
 FSOC_VERSION := 0.67.0
 GOLANGCI_LINT := $(TOOLS_DIR)/golangci-lint
 GOLANGCI_LINT_VERSION := 1.57.2
+GENERATOR_ENTRY_POINT := $(TOP_LEVEL)/tools/plugingenerator/cmd
 
 $(ADDLICENSE):
 	mkdir -p $(TOOLS_DIR)
@@ -59,6 +60,10 @@ acctest:
 .PHONY: plugin
 plugin:
 	go build -o $(PLUGIN_NAME)
+
+.PHONY: generate
+generate:
+	cd $(GENERATOR_ENTRY_POINT) && go run main.go -repo-root $(TOP_LEVEL)
 
 .PHONY: clean
 clean:
