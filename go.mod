@@ -1,6 +1,6 @@
 module github.com/cisco-open/terraform-provider-observability
 
-go 1.22.1
+go 1.23.0
 
 require (
 	github.com/apex/log v1.9.0
@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.7.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
-	golang.org/x/oauth2 v0.19.0
+	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.6.0
 )
 
